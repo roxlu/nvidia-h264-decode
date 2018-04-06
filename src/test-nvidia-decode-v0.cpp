@@ -6,7 +6,7 @@
   GENERAL INFO:
 
     This repository contains a collection of experiments using
-    the NVDECODE SDK to decode H264 using harware
+    the NVDECODE SDK to decode H264 using hardware
     acceleration. These tests are meant to be minimal and should
     not be used in production environments. The code was written 
     while diving into the APIs so things might be incorrect.
@@ -52,11 +52,6 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
 CUcontext context = { 0 };
 CUvideodecoder decoder = nullptr;
 CUdevice device = { 0 };
-std::ofstream ofs;
-
-int decode_dx = 0;
-int map_dx = 0;
-int num_surfaces = 4;
 
 /* ------------------------------------------------ */
 
