@@ -90,5 +90,6 @@ if [ $? -ne 0 ] ; then
 fi
 
 cd ${id}/bin
-${debugger} ./test-nvidia-decode-v0
+# ${debugger} ./test-nvidia-decode-v0${debug_flag}
+${debugger} ./test-nvidia-decode-v1${debug_flag}
 

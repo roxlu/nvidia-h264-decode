@@ -38,9 +38,6 @@ macro(create_test name)
 endmacro()
 
 create_test("nvidia-decode-v0")
-#create_test("nvdec-v0")
-#create_test("nvdec-v1")
-#create_test("nvdec-v2")
-#create_test("h264-parser-file-v0")
+create_test("nvidia-decode-v1")
       
 

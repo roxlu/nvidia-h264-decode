@@ -49,15 +49,15 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
 
 /* ------------------------------------------------ */
 
-CUcontext context = { 0 };
+CUcontext context = nullptr;
 CUvideodecoder decoder = nullptr;
-CUdevice device = { 0 };
+CUdevice device = 0;
 
 /* ------------------------------------------------ */
 
 int main() {
 
-  printf("\n\nnvidia decode test v0.\n\n");
+  printf("\n\nnvidia decode test v1.\n\n");
   
   CUresult r = CUDA_SUCCESS;
   const char* err_str = nullptr;
@@ -104,56 +104,14 @@ int main() {
     exit(EXIT_FAILURE);
   }
 
-  /* Query capabilities. */
-  CUVIDDECODECAPS decode_caps = {};
-  decode_caps.eCodecType = cudaVideoCodec_H264;
-  decode_caps.eChromaFormat = cudaVideoChromaFormat_420;
-  decode_caps.nBitDepthMinus8 = 0;
-
-  r = cuvidGetDecoderCaps(&decode_caps);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to get decoder caps: %s (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-  
-  /* Create decoder context. */
-  CUVIDDECODECREATEINFO create_info = { 0 };
-  create_info.CodecType = decode_caps.eCodecType;                    /* cudaVideoCodex_XXX */
-  create_info.ChromaFormat = decode_caps.eChromaFormat;              /* cudaVideoChromaFormat_XXX */
-  create_info.OutputFormat = cudaVideoSurfaceFormat_NV12;            /* cudaVideoSurfaceFormat_XXX */
-  create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;         /* cudaVideoCreate_XXX */
-  create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;      /* cudaVideoDeinterlaceMode_XXX */
-  create_info.bitDepthMinus8 = decode_caps.nBitDepthMinus8;;
-  create_info.ulNumOutputSurfaces = 2;                               /* Maximum number of internal decode surfaces. */
-  create_info.ulNumDecodeSurfaces = 4;                               /* @todo from NvDecoder.cpp, assuming worst case here ... Maximum number of internal decode surfaces. */
-  create_info.ulIntraDecodeOnly = 0;                                 /* @todo this seems like an interesting flag. */
-
-  /* Size is specific for the moonlight.264 file. */
-  create_info.ulWidth = 512;                                        /* Coded sequence width in pixels. */
-  create_info.ulHeight = 384;                                       /* Coded sequence height in pixels. */
-  create_info.ulTargetWidth = create_info.ulWidth;                   /* Post-processed output width (should be aligned to 2). */
-  create_info.ulTargetHeight = create_info.ulHeight;                 /* Post-processed output height (should be aligned to 2). */
-
-  
-  /* @todo do we need this? */
-  /* create_info.vidLock = ...*/
-
-  r = cuvidCreateDecoder(&decoder, &create_info);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to create the decoder: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
   /* Create a video parser that gives us the CUVIDPICPARAMS structures. */
   CUVIDPARSERPARAMS parser_params;
   memset((void*)&parser_params, 0x00, sizeof(parser_params));
-  parser_params.CodecType = create_info.CodecType;
-  parser_params.ulMaxNumDecodeSurfaces = create_info.ulNumDecodeSurfaces;
+  parser_params.CodecType = cudaVideoCodec_H264;
+  parser_params.ulMaxNumDecodeSurfaces = 1;
+  parser_params.ulMaxDisplayDelay = 0; 
   parser_params.ulClockRate = 0;
   parser_params.ulErrorThreshold = 0;
-  parser_params.ulMaxDisplayDelay = 1;
   parser_params.pUserData = nullptr;
   parser_params.pfnSequenceCallback = parser_sequence_callback;
   parser_params.pfnDecodePicture = parser_decode_picture_callback;
@@ -199,22 +157,31 @@ int main() {
     printf("Failed to parse h264 packet: %s (exiting).\n", err_str);
     exit(EXIT_FAILURE);
   }
+
+  if (nullptr == decoder) {
+    printf("Error: no decoder created yet, should have been done inside the sequence callback. (exiting).\n");
+    exit(EXIT_FAILURE);
+  }
   
   /* Cleanup */
   /* ------------------------------------------------------ */
 
-  r = cuCtxDestroy(context);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to cleanly destroy the cuda context: %s (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
+  if (nullptr != context) {
+    r = cuCtxDestroy(context);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to cleanly destroy the cuda context: %s (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
   }
 
-  r = cuvidDestroyDecoder(decoder);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to cleanly destroy the decoder context: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
+  if (nullptr != decoder) {
+    r = cuvidDestroyDecoder(decoder);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to cleanly destroy the decoder context: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
   }
 
   if (nullptr != parser) {
@@ -236,10 +203,67 @@ int main() {
 /* ------------------------------------------------ */
 
 static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt) {
+
+  const char* err_str = nullptr;
+  
+  if (nullptr == context) {
+    printf("The CUcontext is nullptr, you should initialize it before kicking off the decoder.\n");
+    exit(EXIT_FAILURE);
+  }
+
   printf("CUVIDEOFORMAT.Coded size: %d x %d\n", fmt->coded_width, fmt->coded_height);
   printf("CUVIDEOFORMAT.Display area: %d %d %d %d\n", fmt->display_area.left, fmt->display_area.top, fmt->display_area.right, fmt->display_area.bottom);
   printf("CUVIDEOFORMAT.Bitrate: %u\n", fmt->bitrate);
-  return 0;
+
+  CUVIDDECODECAPS decode_caps;
+  memset((char*)&decode_caps, 0x00, sizeof(decode_caps));
+  decode_caps.eCodecType = fmt->codec;
+  decode_caps.eChromaFormat = fmt->chroma_format;
+  decode_caps.nBitDepthMinus8 = fmt->bit_depth_luma_minus8;
+
+  CUresult r = cuvidGetDecoderCaps(&decode_caps);
+  if (CUDA_SUCCESS != r) {
+    cuGetErrorString(r, &err_str);
+    printf("Failed to get decoder caps: %s (exiting).\n", err_str);
+    exit(EXIT_FAILURE);
+  }
+
+  if (!decode_caps.bIsSupported) {
+    printf("The video file format is not supported by NVDECODE. (exiting).\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* Create decoder context. */
+  CUVIDDECODECREATEINFO create_info = { 0 };
+  create_info.CodecType = fmt->codec;
+  create_info.ChromaFormat = fmt->chroma_format;
+  create_info.OutputFormat = (fmt->bit_depth_luma_minus8) ? cudaVideoSurfaceFormat_P016 : cudaVideoSurfaceFormat_NV12;
+  create_info.bitDepthMinus8 = fmt->bit_depth_luma_minus8;
+  create_info.DeinterlaceMode = cudaVideoDeinterlaceMode_Weave;
+  create_info.ulNumOutputSurfaces = 2;
+  create_info.ulNumDecodeSurfaces = 20;   
+  create_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;
+  create_info.vidLock = nullptr;
+  create_info.ulIntraDecodeOnly = 0;
+  create_info.ulTargetWidth = fmt->coded_width;
+  create_info.ulTargetHeight = fmt->coded_height;
+  create_info.ulWidth = fmt->coded_width;
+  create_info.ulHeight = fmt->coded_height;
+
+  cuCtxPushCurrent(context);
+  {
+    r = cuvidCreateDecoder(&decoder, &create_info);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to create the decoder: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
+  }
+  cuCtxPopCurrent(nullptr);
+
+  printf("Created the decoder.\n");
+  
+  return create_info.ulNumDecodeSurfaces;
 }
 
 static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic) {
@@ -263,29 +287,30 @@ static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info
 
   const char* err_str = nullptr;
   CUresult r = CUDA_SUCCESS;
-  CUVIDPROCPARAMS vpp = { 0 };
   unsigned int pitch = 0;
-  int to_map = info->picture_index;
+  CUdeviceptr src_frame = 0;
 
+  CUVIDPROCPARAMS vpp = { 0 };
   vpp.progressive_frame = info->progressive_frame;
+  vpp.second_field = info->repeat_first_field + 1;
   vpp.top_field_first = info->top_field_first;
   vpp.unpaired_field = (info->repeat_first_field < 0);
-  vpp.second_field = 0;
+  vpp.output_stream = nullptr; /* @todo do we need to set this to something? */
 
-  r = cuvidMapVideoFrame(decoder, to_map, (unsigned long long*)&device, &pitch, &vpp);
+  r = cuvidMapVideoFrame(decoder, info->picture_index, &src_frame, &pitch, &vpp);
 
   if (CUDA_SUCCESS != r) {
     cuGetErrorString(r, &err_str);
-    printf("- mapping: %u failed: %s\n", to_map, err_str);
+    printf("- mapping: %u failed: %s\n", info->picture_index, err_str);
     return 0;
   }
   
-  printf("+ mapping: %u succeeded\n", to_map);
+  printf("+ mapping: %u succeeded\n", info->picture_index);
   
-  r = cuvidUnmapVideoFrame(decoder, (unsigned long long)device);
+  r = cuvidUnmapVideoFrame(decoder, src_frame);
   if (CUDA_SUCCESS != r) {
     cuGetErrorString(r, &err_str);
-    printf("- failed to unmap the video frame: %s, %d\n", err_str, to_map);
+    printf("- failed to unmap the video frame: %s, %d\n", err_str, info->picture_index);
     return 0;
   }
   
