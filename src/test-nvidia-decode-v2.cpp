@@ -10,6 +10,10 @@
     not be used in production environments. The code was written 
     while diving into the APIs so things might be incorrect.
 
+    This particular test writes the decoded YUV into a file which
+    can be played back with ffplay. Though atm only videos with
+    IDR only frames are working correctly.
+
   QUESTIONS:
   
     Q1: Should I use the CUVIDDECODECREATEINFO.vidLock .. and when? 

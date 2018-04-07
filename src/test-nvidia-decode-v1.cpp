@@ -10,7 +10,7 @@
     acceleration. These tests are meant to be minimal and should
     not be used in production environments. The code was written 
     while diving into the APIs so things might be incorrect.
-  
+
   QUESTIONS:
   
     Q1: Should I use the CUVIDDECODECREATEINFO.vidLock .. and when? 
