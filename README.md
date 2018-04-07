@@ -6,20 +6,28 @@ for people to have a peek at the code. This was tested on Arch Linux.
 
 www.roxlu.com
 
-## How to build
+## How to build on Windows
 
-First [download and install CUDA](https://developer.nvidia.com/cuda-download) after which you have to 
-download the [nvidia Video Codec SDK](https://developer.nvidia.com/nvidia-video-codec-sdk#Download). 
+- Tested this with Cuda 9.1
+- Make sure the *CUDA_PATH* environment variable is set.
+- Make sure that _ncuvid.dll_ is stored in C:\Windows\system32
+- Install cmake 
+- [download and install CUDA](https://developer.nvidia.com/cuda-download) 
+- [download nvidia Video Codec SDK](https://developer.nvidia.com/nvidia-video-codec-sdk#Download). Extract the *Video Codec SDK* into:
 
-Extract the *Video Codec SDK* into:
+        [repos-dir]/extern/Video_Codec_SDK/
 
-    [repos-dir]/extern/Video_Codec_SDK/
-    
-So that you have something like:
+- Open a terminal and:
 
-    build/
-    extern/Video_Codec_SDK/ 
-    extern/Video_Codec_SDK/doc
-    extern/Video_Codec_SDK/Samples
-    ...
-    src/
+        cd build
+        release.bat release
+         
+
+## How to build on Linux
+
+- Install CUDA using your package manager
+- Open a terminal and:
+
+        cd build
+        ./release.sh
+
