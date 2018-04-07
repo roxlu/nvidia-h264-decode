@@ -91,5 +91,6 @@ fi
 
 cd ${id}/bin
 # ${debugger} ./test-nvidia-decode-v0${debug_flag}
-${debugger} ./test-nvidia-decode-v1${debug_flag}
+#${debugger} ./test-nvidia-decode-v1${debug_flag}
+${debugger} ./test-nvidia-decode-v2${debug_flag}
 
