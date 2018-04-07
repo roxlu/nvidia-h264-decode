@@ -10,6 +10,18 @@ set(sd ${bd}/src)
 #   - CUDA_LIBRARIES
 find_package(CUDA)
 
+if (WIN32)
+  list(APPEND libs
+    $ENV{CUDA_PATH}/lib/x64/cuda.lib
+    ${bd}/extern/Video_Codec_SDK/Samples/NvCodec/Lib/x64/nvcuvid.lib
+    )
+elseif(UNIX)
+  list(APPEND libs
+    nvcuvid
+    cuda
+    )
+endif()
+
 include_directories(
   ${sd}
   ${CUDA_INCLUDE_DIRS}
@@ -17,8 +29,6 @@ include_directories(
   )
 
 list(APPEND libs
-  nvcuvid
-  cuda
   ${CUDA_LIBRARIES}
   )
 

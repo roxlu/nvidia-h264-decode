@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <fstream>
 #include <NvDecoder/nvcuvid.h>
 #include <NvDecoder/cuviddec.h>
@@ -56,9 +55,6 @@ CUvideodecoder decoder = nullptr;
 CUdevice device = { 0 };
 std::ofstream ofs;
 
-int decode_dx = 0;
-int map_dx = 0;
-int num_surfaces = 4;
 char* yuv_buffer = nullptr;
 int yuv_nbytes_needed = 0;
 int coded_width = 0;
@@ -180,21 +176,8 @@ int main() {
 
   printf("Cleaning up.\n");
   
-  r = cuCtxDestroy(context);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to cleanly destroy the cuda context: %s (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
-  r = cuvidDestroyDecoder(decoder);
-  if (CUDA_SUCCESS != r) {
-    cuGetErrorString(r, &err_str);
-    printf("Failed to cleanly destroy the decoder context: %s. (exiting).\n", err_str);
-    exit(EXIT_FAILURE);
-  }
-
   if (nullptr != parser) {
+    printf("Destroying video parser.\n");
     r = cuvidDestroyVideoParser(parser);
     if (CUDA_SUCCESS != r) {
       cuGetErrorString(r, &err_str);
@@ -203,16 +186,51 @@ int main() {
     }
   }
 
+  if (nullptr != decoder) {
+    printf("Destroying decoder.\n");
+    r = cuvidDestroyDecoder(decoder);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to cleanly destroy the decoder context: %s. (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  if (nullptr != context) {
+    printf("Destroying context.\n");
+    r = cuCtxDestroy(context);
+    if (CUDA_SUCCESS != r) {
+      cuGetErrorString(r, &err_str);
+      printf("Failed to cleanly destroy the cuda context: %s (exiting).\n", err_str);
+      exit(EXIT_FAILURE);
+    }
+    printf("Context destroyed.\n");
+  }
+  
+  if (nullptr != yuv_buffer) {
+    /* Segfaults on Win (?) */
+    /*
+    printf("Freeing yuv buffer.\n");
+    free(yuv_buffer);
+    yuv_buffer = nullptr;
+    yuv_nbytes_needed = 0;
+    */
+  }
+  
+  printf("Playback with: ");
+  printf("ffplay -f rawvideo -pix_fmt nv12 -s %dx%d -i out.nv12\n", coded_width, coded_height);
+  
+  printf("Resetting state.\n");
   context = nullptr;
   decoder = nullptr;
   parser = nullptr;
+  coded_width = 0;
+  coded_height = 0;
 
   if (ofs.is_open()) {
     ofs.close();
   }
 
-  printf("Playback with:\n");
-  printf("ffplay -f rawvideo -pix_fmt nv12 -s %dx%d -i out.nv12\n", coded_width, coded_height);
   return 0;
 }
 
