@@ -208,13 +208,10 @@ int main() {
   }
   
   if (nullptr != yuv_buffer) {
-    /* Segfaults on Win (?) */
-    /*
+    cuMemFreeHost(yuv_buffer);
     printf("Freeing yuv buffer.\n");
-    free(yuv_buffer);
     yuv_buffer = nullptr;
     yuv_nbytes_needed = 0;
-    */
   }
   
   printf("Playback with: ");
