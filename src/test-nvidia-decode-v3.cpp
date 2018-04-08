@@ -49,7 +49,7 @@ static void print_cuvid_pic_params(CUVIDPICPARAMS* pic);
 static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt);
 static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic);
 static int parser_display_picture_callback(void* user, CUVIDPARSERDISPINFO* info);
-static int map_picture(CUVIDPARSERDISPINFO* info);
+static int map_picture(CUVIDPARSERDISPINFO* info); 
   
 /* ------------------------------------------------ */
 
@@ -307,7 +307,7 @@ static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt) {
 
   printf("Created the decoder.\n");
   
-  return 0;
+  return 1;
 }
 
 static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic) {

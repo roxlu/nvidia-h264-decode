@@ -64,7 +64,7 @@ int coded_height = 0;
 
 int main() {
  
-  printf("\n\nnvidia decode test v1.\n\n");
+  printf("\n\nnvidia decode test v2.\n\n");
   
   CUresult r = CUDA_SUCCESS;
   const char* err_str = nullptr;
@@ -297,7 +297,7 @@ static int parser_sequence_callback(void* user, CUVIDEOFORMAT* fmt) {
 
   printf("Created the decoder.\n");
   
-  return 0;
+  return 1;
 }
 
 static int parser_decode_picture_callback(void* user, CUVIDPICPARAMS* pic) {
