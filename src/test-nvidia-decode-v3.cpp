@@ -69,7 +69,7 @@ int coded_height = 0;
 
 int main() {
  
-  printf("\n\nnvidia decode test v1.\n\n");
+  printf("\n\nnvidia decode test v3.\n\n");
   
   CUresult r = CUDA_SUCCESS;
   const char* err_str = nullptr;
