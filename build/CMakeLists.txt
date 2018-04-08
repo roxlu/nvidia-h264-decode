@@ -50,5 +50,6 @@ endmacro()
 create_test("nvidia-decode-v0")
 create_test("nvidia-decode-v1")
 create_test("nvidia-decode-v2")
+create_test("nvidia-decode-v3")
       
 
